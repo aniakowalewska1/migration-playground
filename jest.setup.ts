@@ -17,10 +17,14 @@ globalThis.fetch = (input: any, _init?: any) => {
           status: 200,
           json: async () => body,
           text: async () => JSON.stringify(body),
-        });
+        } as unknown as Response);
         return;
       }
-      resolve({ ok: false, status: 404, json: async () => null });
+      resolve({
+        ok: false,
+        status: 404,
+        json: async () => null,
+      } as unknown as Response);
     }, 0);
   });
 };
