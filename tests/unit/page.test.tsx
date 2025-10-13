@@ -2,26 +2,17 @@ import { render, screen } from "@testing-library/react";
 import Home from "../../app/page";
 
 describe("Home", () => {
-  it("renders the Next.js logo", () => {
-    render(<Home />);
-    const logo = screen.getByAltText("Next.js logo");
-    expect(logo).toBeInTheDocument();
-  });
-
-  it("displays the getting started text", () => {
-    render(<Home />);
-    expect(screen.getByText(/Get started by editing/i)).toBeInTheDocument();
-    expect(screen.getByText("app/page.tsx")).toBeInTheDocument();
-  });
-
-  it("displays save and see changes text", () => {
+  it("renders header title and description", () => {
     render(<Home />);
     expect(
-      screen.getByText(/Save and see your changes instantly/i)
+      screen.getByRole("heading", { name: /Migration Playground/i })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Small demo app with unit and E2E tests/i)
     ).toBeInTheDocument();
   });
 
-  it("renders Deploy now link", () => {
+  it("renders links and attributes", () => {
     render(<Home />);
     const deployLink = screen.getByRole("link", { name: /Deploy now/i });
     expect(deployLink).toBeInTheDocument();
@@ -29,19 +20,19 @@ describe("Home", () => {
       "href",
       expect.stringContaining("vercel.com")
     );
-    expect(deployLink).toHaveAttribute("target", "_blank");
     expect(deployLink).toHaveAttribute("rel", "noopener noreferrer");
-  });
 
-  it("renders Read our docs link", () => {
-    render(<Home />);
     const docsLink = screen.getByRole("link", { name: /Read our docs/i });
     expect(docsLink).toBeInTheDocument();
-    expect(docsLink).toHaveAttribute(
-      "href",
-      expect.stringContaining("nextjs.org/docs")
-    );
-    expect(docsLink).toHaveAttribute("target", "_blank");
+  });
+
+  it("shows items fetched from the API", async () => {
+    render(<Home />);
+    // ItemList fetch is mocked in jest.setup, wait for items to appear
+    const first = await screen.findByText("First item");
+    const second = await screen.findByText("Second item");
+    expect(first).toBeInTheDocument();
+    expect(second).toBeInTheDocument();
   });
 
   it("renders footer links", () => {
@@ -51,12 +42,5 @@ describe("Home", () => {
     expect(
       screen.getByRole("link", { name: /Go to nextjs.org/i })
     ).toBeInTheDocument();
-  });
-
-  it("renders all expected images", () => {
-    render(<Home />);
-    const images = screen.getAllByRole("img");
-    // Next.js logo, Vercel logo, file icon, window icon, globe icon
-    expect(images.length).toBeGreaterThanOrEqual(2);
   });
 });

@@ -1,9 +1,11 @@
 import { test, expect } from "@playwright/test";
 
-test("homepage loads", async ({ page }) => {
+test("homepage loads and shows items", async ({ page }) => {
   await page.goto("/");
-  // Check page has at least one element (body) and optionally a heading
-  await expect(page.locator("body")).toBeVisible();
-  // Optional: if your app has a title or heading, assert on it.
-  // await expect(page.locator('h1')).toContainText('Welcome');
+  await expect(page.locator("h1")).toHaveText("Migration Playground");
+  // Wait for an item to appear
+  const items = page.locator('ul li')
+  await expect(items).toHaveCount(2)
+  await expect(items.nth(0)).toHaveText('First item')
+  await expect(items.nth(1)).toHaveText('Second item')
 });
