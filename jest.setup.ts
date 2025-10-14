@@ -2,7 +2,8 @@ import "@testing-library/jest-dom";
 
 // Provide a simple global fetch mock for tests that render client components
 // which call fetch (e.g. components/ItemList).
-globalThis.fetch = (input: any, _init?: any) => {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+globalThis.fetch = (input: RequestInfo | URL, _init?: RequestInit) => {
   const url = typeof input === "string" ? input : input?.toString();
   // Resolve on next tick to ensure Testing Library's async helpers wrap updates with act()
   return new Promise((resolve) => {
