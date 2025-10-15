@@ -2,78 +2,124 @@
 
 This is a proof-of-concept (POC) project demonstrating CI/CD capabilities using Azure DevOps Pipelines. The project is built with [Next.js](https://nextjs.org) and showcases automated build and test workflows. GitHub Actions workflows are also included for comparison purposes.
 
-## POC Overview
+## Project Features
 
-This repository demonstrates key CI/CD features including:
+### Technical Features
 
-- Automated builds with multiple Node.js versions
+- Next.js 15.5 application with TypeScript and Tailwind CSS
+- API routes implementation with error handling
+- Pokemon API integration with search and display capabilities
+- Unit tests with Jest and React Testing Library
+- E2E tests with Playwright
+- Dynamic styling with Tailwind CSS
+- Light/dark theme support with system preference detection
+
+### Demo Pages and Components
+
+- Home page with dynamic item list from API
+- Pokemon search functionality with autocomplete
+- Pokemon card display with type-based styling
+- Responsive layout with mobile-first design
+
+## CI/CD Features
+
+This repository demonstrates key CI/CD capabilities including:
+
+- Automated builds with multiple Node.js versions (20.x, 22.x)
 - Comprehensive test execution with coverage reporting
 - Artifact management and retention
 - Pull request automation with labeling
 - Workflow status badges and reporting
+- E2E test automation in CI pipeline
 
-## Azure DevOps Pipelines
+## CI/CD Pipeline Configuration
 
-This repository contains three Azure DevOps pipeline configurations:
+This repository contains parallel CI/CD implementations using both Azure DevOps Pipelines and GitHub Actions.
 
-### 1. Build Pipeline (`.azure/build.yml`)
+### Azure DevOps Pipelines
+
+Located in the `.azure/` directory:
+
+#### 1. Build Pipeline (`.azure/build.yml`)
 
 **Purpose**: Builds the Next.js application with multiple Node.js versions
 
-**Triggers**:
+**Triggers**: Manual trigger only (PR builds configured)
 
-- Push to `main` or `dev` branches
 - Pull requests to `main` or `dev` branches
 
 **Key Features**:
 
 - Matrix strategy for Node.js 20.x and 22.x
-- `NodeTool@0` - Sets up Node.js environment
-- `Cache@2` - Caches npm dependencies for faster builds
-- Runs ESLint for code quality (continues on error)
-- Builds Next.js application
-- `PublishBuildArtifacts@1` - Publishes build artifacts (7-day retention)
-  - Publishes `.next/` build output
-  - Publishes `package.json` for deployment reference
+- Uses Ubuntu latest runner
+- `NodeTool@0` for Node.js setup
+- `Cache@2` for npm dependency caching
+- ESLint checks (with continue on error)
+- Next.js build with Turbopack
+- Artifact publishing for Node 22.x builds:
+  - `.next/` build output (7-day retention)
+  - `package.json` for deployment
 
-**Pipeline Steps**:
+#### 2. Test Pipeline (`.azure/test.yml`)
 
-1. Checkout code
-2. Setup Node.js version
-3. Cache npm dependencies
-4. Install dependencies (`npm ci`)
-5. Run linter (`npm run lint`)
-6. Build application (`npm run build`)
-7. Upload build artifacts (Node 22.x only)
+**Purpose**: Comprehensive test suite execution
 
-### 2. Test Pipeline (`.azure/test.yml`)
+**Triggers**: Manual trigger only (PR builds configured)
 
-**Purpose**: Runs automated tests and generates coverage reports
-
-**Triggers**:
-
-- Push to `main` or `dev` branches
 - Pull requests to `main` or `dev` branches
 
 **Key Features**:
 
-- Runs on Node.js 22.x
-- Jest test execution with coverage
-- `PublishBuildArtifacts@1` - Publishes coverage reports (30-day retention)
-- `PublishCodeCoverageResults@2` - Integrates coverage with Azure DevOps UI
-- Coverage visualization directly in the pipeline interface
+- Single Node.js version (22.x)
+- Jest unit tests with coverage
+- Playwright E2E tests
+- Artifact retention:
+  - Coverage reports (30-day retention)
+  - Cobertura format for Azure DevOps integration
+- Coverage results integration with Azure DevOps UI
 
-**Pipeline Steps**:
+### GitHub Actions
 
-1. Checkout code
-2. Setup Node.js 22.x
-3. Cache npm dependencies
-4. Install dependencies (`npm ci`)
-5. Run tests (`npm test`)
-6. Run tests with coverage (`npm run test:coverage`)
-7. Upload coverage reports
-8. Publish code coverage results for Azure DevOps
-9. Display coverage summary in logs
+Located in `.github/workflows/`:
+
+#### 1. Build Workflow (`build.yml`)
+
+**Triggers**:
+
+- Push to `main`
+- Pull requests to `main`
+- Manual trigger (workflow_dispatch)
+
+**Features**:
+
+- Matrix build: Node.js 20.x and 22.x
+- npm caching via `actions/setup-node`
+- ESLint checks
+- Build artifacts for 22.x (7-day retention)
+
+#### 2. Test Workflow (`test.yml`)
+
+**Triggers**:
+
+- Push to `main`
+- Pull requests to `main`
+- Manual trigger (workflow_dispatch)
+
+**Features**:
+
+- Single Node.js version (22.x)
+- Jest unit tests
+- Coverage reporting
+- Playwright E2E tests
+- Coverage artifacts (30-day retention)
+
+#### 3. PR Labeler (`label.yml`)
+
+**Purpose**: Automated PR labeling
+
+- Triggered on `pull_request_target`
+- Uses `actions/labeler` with custom rules
+- Configuration in `.github/labeler.yml`
 
 ## Azure DevOps Key Features
 
@@ -111,21 +157,59 @@ This POC demonstrates several key Azure DevOps capabilities:
 - Pipeline status badges
 - Build history and trends
 
-## Comparison with GitHub Actions
+## Azure DevOps vs GitHub Actions Comparison
 
-For reference, this repository also includes equivalent GitHub Actions workflows (`.github/workflows/`) to compare implementation approaches:
+This repository demonstrates parallel implementations in both CI/CD platforms:
 
-| Feature           | Azure DevOps                                 | GitHub Actions                      |
-| ----------------- | -------------------------------------------- | ----------------------------------- |
-| **Configuration** | `azure-pipelines-*.yml`                      | `.github/workflows/*.yml`           |
-| **Node.js Setup** | `NodeTool@0` task                            | `actions/setup-node` action         |
-| **Caching**       | `Cache@2` task                               | `actions/cache` action              |
-| **Artifacts**     | `PublishBuildArtifacts@1`                    | `actions/upload-artifact`           |
-| **Coverage**      | `PublishCodeCoverageResults@2` (built-in UI) | Third-party actions needed          |
-| **Triggers**      | `trigger:` and `pr:`                         | `on:` with event types              |
-| **Matrix Syntax** | `strategy.matrix` with variables             | `strategy.matrix` with job outputs  |
-| **Conditions**    | `condition:` keyword                         | `if:` keyword                       |
-| **Integration**   | Deep Azure integration, work items           | Deep GitHub integration, issues/PRs |
+| Feature              | Azure DevOps (`.azure/`)              | GitHub Actions (`.github/workflows/`) |
+| -------------------- | ------------------------------------- | ------------------------------------- |
+| **Config Location**  | Root `.azure/*.yml`                   | `.github/workflows/*.yml`             |
+| **Node Setup**       | `NodeTool@0`                          | `actions/setup-node@v4`               |
+| **Dependency Cache** | `Cache@2` with npm path               | Built into `setup-node` with npm      |
+| **Build Matrix**     | Matrix vars with condition            | Matrix with if condition              |
+| **Artifacts**        | `PublishBuildArtifacts@1` (Container) | `actions/upload-artifact@v4`          |
+| **Coverage**         | Native Azure DevOps UI integration    | Coverage summary in job summary       |
+| **PR Triggers**      | `pr:` with branch includes            | `pull_request` event                  |
+| **Manual Runs**      | Enabled via empty schedules           | `workflow_dispatch` event             |
+| **E2E Tests**        | Playwright with npm scripts           | Playwright with npm scripts           |
+| **Environment**      | Ubuntu latest via vmImage             | ubuntu-latest runner                  |
+| **PR Integration**   | Built-in Azure Repos integration      | Native GitHub PR integration          |
+
+Key Differences:
+
+- Azure DevOps has better native test reporting and coverage visualization
+- GitHub Actions has simpler dependency caching setup
+- Azure pipelines currently set for manual/PR triggers only
+- GitHub Actions include push triggers for main branch
+- GitHub Actions include additional PR labeler workflow
+
+## API Endpoints
+
+The application exposes several REST API endpoints:
+
+### Items API
+
+- `GET /api/items` - Returns a list of demo items
+  - Response: `{ id: string, name: string }[]`
+
+### Pokemon API
+
+- `GET /api/pokemon/search` - Returns a list of Pokemon names and URLs
+
+  - Response: `{ name: string, url: string }[]`
+  - Returns first 150 Pokemon for search suggestions
+
+- `GET /api/pokemon?name={pokemonName}` - Returns detailed Pokemon information
+  - Parameters: `name` (required) - The name of the Pokemon to retrieve
+  - Response: Pokemon object with:
+    - Basic info (id, name)
+    - Types
+    - Sprites (images)
+    - Stats (HP, Attack, etc.)
+    - Physical attributes (height, weight)
+  - Error responses:
+    - 400 if name parameter is missing
+    - 404 if Pokemon not found
 
 ## Getting Started
 
@@ -269,19 +353,40 @@ To manually trigger a pipeline:
 
 ```
 migration-playground/
-├── .github/
-│   ├── workflows/
-│   │   ├── build.yml              # GitHub Actions build workflow
-│   │   ├── test.yml               # GitHub Actions test workflow
-│   │   └── label.yml              # GitHub Actions PR labeler workflow
-│   └── labeler.yml                # Labeler configuration
-├── azure-pipelines-build.yml      # Azure DevOps build pipeline
-├── azure-pipelines-test.yml       # Azure DevOps test pipeline
-├── azure-pipelines-labeler.yml    # Azure DevOps PR labeler pipeline
-├── app/                           # Next.js app directory
-├── jest.config.ts                 # Jest configuration
-├── package.json                   # Dependencies and scripts
-└── README.md                      # This file
+├── .github/                       # GitHub configurations
+│   ├── workflows/                 # GitHub Actions workflows
+│   │   ├── build.yml             # Build workflow
+│   │   ├── test.yml              # Test workflow
+│   │   └── label.yml             # PR labeler workflow
+│   └── labeler.yml               # PR labeler rules
+├── .azure/                        # Azure DevOps configurations
+│   ├── build.yml                 # Build pipeline
+│   └── test.yml                  # Test pipeline
+├── app/                          # Next.js app directory
+│   ├── api/                      # API routes
+│   │   ├── items/               # Items API endpoints
+│   │   └── pokemon/             # Pokemon API endpoints
+│   ├── layout.tsx               # Root layout component
+│   └── page.tsx                 # Home page component
+├── components/                   # React components
+│   ├── Header.tsx
+│   ├── ItemList.tsx
+│   ├── PokemonCard.tsx
+│   └── PokemonSearch.tsx
+├── services/                    # Service layer
+│   └── pokemon.service.ts       # Pokemon API service
+├── tests/                       # Test files
+│   ├── e2e/                    # Playwright E2E tests
+│   └── unit/                   # Jest unit tests
+├── types/                      # TypeScript type definitions
+│   └── pokemon.ts              # Pokemon-related types
+├── jest.config.ts              # Jest configuration
+├── jest.setup.ts              # Jest setup/mocks
+├── next.config.ts             # Next.js configuration
+├── package.json               # Dependencies and scripts
+├── postcss.config.mjs         # PostCSS configuration
+├── tailwind.config.js        # Tailwind CSS configuration
+└── README.md                  # This file
 ```
 
 ## Learn More
