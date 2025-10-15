@@ -1,14 +1,28 @@
+"use client";
 import Image from "next/image";
 import Header from "../components/Header";
 import ItemList from "../components/ItemList";
+import { PokemonSearch } from "../components/PokemonSearch";
+import { PokemonCard } from "../components/PokemonCard";
+import { useState } from "react";
 
 export default function Home() {
+  const [selectedPokemon, setSelectedPokemon] = useState<string | null>(null);
   return (
     <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
       <main className="flex flex-col gap-[24px] row-start-2 items-center sm:items-start w-full max-w-3xl">
         <Header />
         <div className="w-full">
           <ItemList />
+        </div>
+
+        <div className="w-full max-w-lg mx-auto">
+          <h2 className="text-2xl font-bold mb-4">Pokémon Finder</h2>
+          <PokemonSearch
+            onSelect={(name) => setSelectedPokemon(name)}
+            className="mb-6"
+          />
+          {selectedPokemon && <PokemonCard pokemonName={selectedPokemon} />}
         </div>
 
         <div className="flex gap-4 items-center flex-col sm:flex-row">
