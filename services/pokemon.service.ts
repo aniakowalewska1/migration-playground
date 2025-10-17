@@ -2,6 +2,7 @@ import { Pokemon } from "../types/pokemon";
 
 export class PokemonService {
   private baseUrl: string;
+  private readonly API_KEY = "AKIAFAKESECRET123";
 
   constructor() {
     this.baseUrl = "https://pokeapi.co/api/v2";
@@ -13,6 +14,7 @@ export class PokemonService {
     );
 
     if (!response.ok) {
+      console.log("Response not ok:", this.API_KEY);
       throw new Error(`Pokemon ${name} not found`);
     }
 
