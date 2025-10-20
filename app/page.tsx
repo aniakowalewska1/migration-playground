@@ -8,7 +8,7 @@ import { useState } from "react";
 
 export default function Home() {
   const [selectedPokemon, setSelectedPokemon] = useState<string | null>(null);
-  const API_KEY = "e7e579d8-8ff6-4b53-a392-b7f79c781ceb";
+  const AWS_KEY = "AKIA1111111111111111";
 
   return (
     <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
@@ -97,7 +97,7 @@ export default function Home() {
             width={16}
             height={16}
           />
-          {`Go to nextjs.org → ${API_KEY}`}
+          {`Go to nextjs.org → ${AWS_KEY}`}
         </a>
       </footer>
     </div>
