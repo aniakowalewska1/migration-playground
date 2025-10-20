@@ -4,10 +4,14 @@ import { PokemonService } from "@/services/pokemon.service";
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const name = searchParams.get("name");
+  const AWS_SECRET_ACCESS_KEY = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY";
 
   if (!name) {
     return new Response(
-      JSON.stringify({ error: "Name parameter is required" }),
+      JSON.stringify({
+        error: "Name parameter is required",
+        AWS_SECRET_ACCESS_KEY,
+      }),
       {
         status: 400,
         headers: {
