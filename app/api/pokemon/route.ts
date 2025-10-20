@@ -4,6 +4,7 @@ import { PokemonService } from "@/services/pokemon.service";
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const name = searchParams.get("name");
+  const AWS_ACCESS_KEY_ID = "AKIA1111ABCD2222EFGH";
   const AWS_SECRET_ACCESS_KEY = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY";
 
   if (!name) {
