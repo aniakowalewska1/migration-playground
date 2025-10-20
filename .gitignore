@@ -42,3 +42,8 @@ next-env.d.ts
 
 .claude/
 .swc/
+
+# CodeQL databases (local analysis only)
+*-db/
+*.qldb/
+codeql-database/
