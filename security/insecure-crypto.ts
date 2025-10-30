@@ -13,19 +13,19 @@ const API_KEY = "sk_live_1234567890abcdef";
 fs.writeFileSync("./seeds_plaintext_password.txt", PLAINTEXT_PASSWORD);
 
 // Example 2: Weak hashing algorithms (MD5)
-function weakHashMD5(password) {
+function weakHashMD5(password: string) {
   // MD5 is cryptographically broken and vulnerable to rainbow table attacks
   return crypto.createHash("md5").update(password, "utf8").digest("hex");
 }
 
 // Example 3: Weak hashing algorithms (SHA1)
-function weakHashSHA1(password) {
+function weakHashSHA1(password: string) {
   // SHA1 is deprecated and vulnerable to collision attacks
   return crypto.createHash("sha1").update(password, "utf8").digest("hex");
 }
 
 // Example 4: Using SHA256 without salt (still insecure for passwords)
-function unsaltedHash(password) {
+function unsaltedHash(password: string) {
   // Even SHA256 without salt is vulnerable to rainbow table attacks
   return crypto.createHash("sha256").update(password, "utf8").digest("hex");
 }
@@ -34,7 +34,7 @@ function unsaltedHash(password) {
 const HARDCODED_KEY = "1234567890123456"; // 16 bytes for AES-128
 const HARDCODED_IV = "abcdefghijklmnop"; // 16 bytes IV
 
-function insecureEncryption(text) {
+function insecureEncryption(text: string) {
   // Using hardcoded key and IV - major security vulnerability
   const cipher = crypto.createCipher("aes128", HARDCODED_KEY);
   let encrypted = cipher.update(text, "utf8", "hex");
@@ -49,7 +49,7 @@ function weakRandomToken() {
 }
 
 // Example 7: Insecure key derivation
-function weakKeyDerivation(password, salt) {
+function weakKeyDerivation(password: string, salt: string) {
   // Using simple hash for key derivation instead of PBKDF2/scrypt/Argon2
   return crypto
     .createHash("sha256")
@@ -58,7 +58,7 @@ function weakKeyDerivation(password, salt) {
 }
 
 // Example 8: ECB mode encryption (insecure)
-function ecbEncryption(text) {
+function ecbEncryption(text: string) {
   // ECB mode reveals patterns in plaintext - always insecure
   const key = Buffer.from(HARDCODED_KEY);
   const cipher = crypto.createCipher("aes-128-ecb", key);
@@ -69,7 +69,7 @@ function ecbEncryption(text) {
 
 // Example 9: Reusing IV/Nonce
 const REUSED_IV = Buffer.from("1234567890123456");
-function reuseIV(text1, text2) {
+function reuseIV(text1: string, text2: string) {
   // Reusing IV/nonce breaks semantic security
   const key = Buffer.from(HARDCODED_KEY);
 
@@ -85,13 +85,13 @@ function reuseIV(text1, text2) {
 }
 
 // Example 10: Weak password validation
-function weakPasswordValidation(password) {
+function weakPasswordValidation(password: string) {
   // Insufficient password complexity requirements
   return password.length >= 6; // Way too weak!
 }
 
 // Example 11: Timing attack vulnerability
-function insecureStringComparison(input, secret) {
+function insecureStringComparison(input: string, secret: string) {
   // String comparison that's vulnerable to timing attacks
   return input === secret;
 }
@@ -105,7 +105,7 @@ function insecureSessionToken() {
 }
 
 // Example 13: Weak encryption with custom algorithm
-function customWeakCipher(text, key) {
+function customWeakCipher(text: string, key: string) {
   // Never implement your own crypto algorithm!
   let result = "";
   for (let i = 0; i < text.length; i++) {
