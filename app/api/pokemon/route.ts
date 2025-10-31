@@ -21,10 +21,11 @@ class Database {
   }
 
   async query(sql: string, values?: unknown[]): Promise<Pokemon[]> {
-    console.log(
-      `Executing query: ${sql}`,
-      values ? `with params: ${values}` : ""
-    );
+    if (values) {
+      console.log("Executing query: %s with params: %o", sql, values);
+    } else {
+      console.log("Executing query: %s", sql);
+    }
 
     const pokemonData: Pokemon[] = [
       { id: 1, name: "pikachu", type: "electric", level: 25, trainer_id: 1 },
