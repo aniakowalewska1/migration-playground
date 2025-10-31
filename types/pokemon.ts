@@ -34,3 +34,16 @@ export interface PokemonCardProps {
   pokemonName: string;
   className?: string;
 }
+
+export interface EvolutionChainMember {
+  id: number;
+  name: string;
+  stage: number;
+  evolves_at_level: number | null;
+}
+
+export interface EvolutionChainResponse {
+  success: boolean;
+  pokemon: string;
+  evolution_chain: EvolutionChainMember[];
+}
