@@ -211,6 +211,47 @@ The application exposes several REST API endpoints:
     - 400 if name parameter is missing
     - 404 if Pokemon not found
 
+- `GET /api/pokemon/evolution?name={pokemonName}` - Returns Pokemon evolution chain
+  - Parameters: `name` (required) - The name of the Pokemon to retrieve evolution chain for
+  - Response: Evolution chain object with:
+    - `success`: boolean indicating success
+    - `pokemon`: the requested Pokemon name (lowercase)
+    - `evolution_chain`: array of evolution stages containing:
+      - `id`: Pokemon ID
+      - `name`: Pokemon name
+      - `stage`: Evolution stage (1, 2, 3, etc.)
+      - `evolves_at_level`: Level required to evolve (null if final evolution or doesn't evolve by level)
+  - Error responses:
+    - 400 if name parameter is missing
+    - 404 if Pokemon not found
+  - Example response:
+    ```json
+    {
+      "success": true,
+      "pokemon": "charmander",
+      "evolution_chain": [
+        {
+          "id": 4,
+          "name": "charmander",
+          "stage": 1,
+          "evolves_at_level": 16
+        },
+        {
+          "id": 5,
+          "name": "charmeleon",
+          "stage": 2,
+          "evolves_at_level": 36
+        },
+        {
+          "id": 6,
+          "name": "charizard",
+          "stage": 3,
+          "evolves_at_level": null
+        }
+      ]
+    }
+    ```
+
 ## Getting Started
 
 ### Prerequisites
