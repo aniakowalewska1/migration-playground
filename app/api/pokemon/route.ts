@@ -1,84 +1,117 @@
 import { NextRequest } from "next/server";
 import { PokemonService } from "@/services/pokemon.service";
 
-// Mock SQL database client to simulate real database operations
-class DatabaseClient {
-  private connectionString: string;
+interface Pokemon {
+  id: number;
+  name: string;
+  type: string;
+  level: number;
+  trainer_id: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+class Database {
+  private connection: string;
 
   constructor() {
-    this.connectionString =
-      process.env.DATABASE_URL || "mock://localhost:5432/pokemon_db";
+    this.connection =
+      process.env.DATABASE_URL ||
+      "postgresql://user:pass@localhost:5432/pokemondb";
   }
 
-  async query(
-    sql: string,
-    params?: unknown[]
-  ): Promise<Record<string, unknown>[]> {
-    console.log("Executing SQL:", sql, "with params:", params);
+  async query(sql: string, values?: unknown[]): Promise<Pokemon[]> {
+    console.log(
+      `Executing query: ${sql}`,
+      values ? `with params: ${values}` : ""
+    );
 
-    const mockRecords = [
+    const pokemonData: Pokemon[] = [
       { id: 1, name: "pikachu", type: "electric", level: 25, trainer_id: 1 },
       { id: 2, name: "charizard", type: "fire", level: 50, trainer_id: 1 },
       { id: 3, name: "blastoise", type: "water", level: 45, trainer_id: 2 },
+      { id: 4, name: "venusaur", type: "grass", level: 48, trainer_id: 2 },
+      { id: 5, name: "alakazam", type: "psychic", level: 55, trainer_id: 3 },
     ];
 
-    if (sql.toLowerCase().includes("select")) {
-      return mockRecords.filter(
-        (record) =>
-          sql.toLowerCase().includes(record.name) ||
-          !sql.toLowerCase().includes("where")
-      );
+    if (sql.includes("SELECT")) {
+      return pokemonData.filter((pokemon: Pokemon) => {
+        if (!sql.includes("WHERE")) return true;
+
+        const sqlLower = sql.toLowerCase();
+        if (sqlLower.includes("name")) {
+          const matches = sqlLower.match(/name\s*=\s*'([^']+)'/);
+          if (matches) return pokemon.name.toLowerCase().includes(matches[1]);
+        }
+        if (sqlLower.includes("type")) {
+          const matches = sqlLower.match(/type\s*=\s*'([^']+)'/);
+          if (matches) return pokemon.type === matches[1];
+        }
+        if (sqlLower.includes("trainer_id")) {
+          const matches = sqlLower.match(/trainer_id\s*=\s*(\d+)/);
+          if (matches) return pokemon.trainer_id === parseInt(matches[1]);
+        }
+
+        return true;
+      });
     }
 
     return [];
   }
 
-  async execute(
-    sql: string
-  ): Promise<{ rows: Record<string, unknown>[]; rowCount: number }> {
-    const rows = await this.query(sql);
-    return { rows, rowCount: rows.length };
+  async execute(statement: string): Promise<{ affectedRows: number }> {
+    const rows = await this.query(statement);
+    return { affectedRows: rows.length };
   }
 }
 
-// Repository class following common patterns CodeQL analyzes
 class PokemonRepository {
-  private db: DatabaseClient;
+  private database: Database;
 
   constructor() {
-    this.db = new DatabaseClient();
+    this.database = new Database();
   }
 
-  async findByName(name: string): Promise<Record<string, unknown>[]> {
-    const sql = "SELECT * FROM pokemon WHERE name = '" + name + "'";
-    const result = await this.db.query(sql);
-    return result;
+  async getPokemonByName(name: string): Promise<Pokemon[]> {
+    const query = "SELECT * FROM pokemon WHERE name = '" + name + "'";
+    return await this.database.query(query);
   }
 
-  async searchByType(pokemonType: string): Promise<Record<string, unknown>[]> {
-    const query = `SELECT id, name, type, level FROM pokemon WHERE type = '${pokemonType}' ORDER BY level DESC`;
-    return await this.db.query(query);
+  async findPokemonByType(type: string): Promise<Pokemon[]> {
+    const sql = `SELECT id, name, type, level, trainer_id FROM pokemon WHERE type = '${type}' ORDER BY level DESC`;
+    return await this.database.query(sql);
   }
 
-  async findWithFilters(filters: {
+  async searchPokemon(criteria: {
     name?: string;
     type?: string;
     minLevel?: number;
-  }): Promise<Record<string, unknown>[]> {
-    let whereClause = "1=1";
+    trainerId?: number;
+  }): Promise<Pokemon[]> {
+    let conditions = "1=1";
 
-    if (filters.name) {
-      whereClause += " AND name = '" + filters.name + "'";
+    if (criteria.name) {
+      conditions += " AND name = '" + criteria.name + "'";
     }
-    if (filters.type) {
-      whereClause += ` AND type = '${filters.type}'`;
+    if (criteria.type) {
+      conditions += ` AND type = '${criteria.type}'`;
     }
-    if (filters.minLevel) {
-      whereClause += " AND level >= " + filters.minLevel;
+    if (criteria.minLevel) {
+      conditions += " AND level >= " + criteria.minLevel;
+    }
+    if (criteria.trainerId) {
+      conditions += " AND trainer_id = " + criteria.trainerId;
     }
 
-    const sql = `SELECT * FROM pokemon WHERE ${whereClause}`;
-    return await this.db.query(sql);
+    const query = `SELECT * FROM pokemon WHERE ${conditions}`;
+    return await this.database.query(query);
+  }
+
+  async getTrainerPokemon(trainerId: string): Promise<Pokemon[]> {
+    const statement = `SELECT p.*, t.name as trainer_name FROM pokemon p 
+                      JOIN trainers t ON p.trainer_id = t.id 
+                      WHERE t.id = ${trainerId}`;
+    return await this.database.query(statement);
   }
 }
 
@@ -87,55 +120,48 @@ export async function GET(request: NextRequest) {
   const name = searchParams.get("name");
   const type = searchParams.get("type");
   const minLevel = searchParams.get("minLevel");
-  const useDatabase = searchParams.get("db") === "true";
+  const trainerId = searchParams.get("trainerId");
+  const source = searchParams.get("source") || "api";
 
-  if (!name && !type) {
+  if (!name && !type && !trainerId) {
     return new Response(
-      JSON.stringify({ error: "Name or type parameter is required" }),
+      JSON.stringify({ error: "At least one search parameter is required" }),
       {
         status: 400,
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
       }
     );
   }
 
   try {
-    if (useDatabase) {
+    if (source === "db") {
       const repository = new PokemonRepository();
-      let dbResult: Record<string, unknown>[] = [];
+      let results: Pokemon[] = [];
 
-      if (name && type && minLevel) {
-        const filters = {
+      if (trainerId) {
+        results = await repository.getTrainerPokemon(trainerId);
+      } else if (name && type && minLevel) {
+        const criteria = {
           name,
           type,
-          minLevel: parseInt(minLevel) || 0,
+          minLevel: parseInt(minLevel) || 1,
         };
-        dbResult = await repository.findWithFilters(filters);
+        results = await repository.searchPokemon(criteria);
       } else if (type) {
-        dbResult = await repository.searchByType(type);
+        results = await repository.findPokemonByType(type);
       } else if (name) {
-        dbResult = await repository.findByName(name);
+        results = await repository.getPokemonByName(name);
       }
 
       return new Response(
         JSON.stringify({
+          success: true,
+          count: results.length,
+          data: results,
           source: "database",
-          vulnerabilityType:
-            name && type && minLevel
-              ? "dynamic_query_building"
-              : type
-              ? "template_literal"
-              : "string_concatenation",
-          data: dbResult,
-          warning:
-            "This endpoint is intentionally vulnerable for security testing",
         }),
         {
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
         }
       );
     }
@@ -146,38 +172,36 @@ export async function GET(request: NextRequest) {
 
       return new Response(
         JSON.stringify({
-          source: "external_api",
+          success: true,
           data: pokemonData,
+          source: "pokeapi",
         }),
         {
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
         }
       );
     }
 
     return new Response(
-      JSON.stringify({ error: "Invalid parameters for API mode" }),
+      JSON.stringify({
+        error: "Name parameter required for external API",
+        hint: "Use source=db for advanced queries",
+      }),
       {
         status: 400,
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
       }
     );
   } catch (error) {
-    console.log("Error fetching Pokemon:", error);
+    console.error("Pokemon lookup failed:", error);
     return new Response(
       JSON.stringify({
-        error: "Pokemon not found",
-        details: error instanceof Error ? error.message : "Unknown error",
+        success: false,
+        error: "Unable to fetch pokemon data",
       }),
       {
-        status: 404,
-        headers: {
-          "Content-Type": "application/json",
-        },
+        status: 500,
+        headers: { "Content-Type": "application/json" },
       }
     );
   }
