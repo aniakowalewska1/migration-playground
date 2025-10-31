@@ -9,7 +9,7 @@ export class PokemonService {
 
   /**
    * Validates and sanitizes a Pokemon name to prevent URL injection.
-   * Only allows alphanumeric characters, hyphens, and spaces.
+   * Only allows alphanumeric characters and hyphens (Pokemon names use hyphens, not spaces).
    * This mitigates request forgery by ensuring only safe characters are used.
    * 
    * @param name - The Pokemon name to sanitize
@@ -17,8 +17,9 @@ export class PokemonService {
    * @throws Error if name is empty after sanitization
    */
   private sanitizePokemonName(name: string): string {
-    // Remove any characters that aren't alphanumeric, hyphen, or space
-    const sanitized = name.toLowerCase().replace(/[^a-z0-9\-\s]/g, "");
+    // Remove any characters that aren't alphanumeric or hyphen
+    // Pokemon names use hyphens (e.g., "mr-mime", "ho-oh"), not spaces
+    const sanitized = name.toLowerCase().replace(/[^a-z0-9-]/g, "");
     
     if (sanitized.length === 0) {
       throw new Error("Invalid Pokemon name");
@@ -31,11 +32,9 @@ export class PokemonService {
     // Sanitize input to prevent URL injection attacks
     const sanitizedName = this.sanitizePokemonName(name);
     
-    // Construct URL safely using URL constructor with fixed base URL
-    // Note: CodeQL may flag this as request forgery, but it's a false positive
-    // because we sanitize input and use a fixed, trusted base URL
-    const url = new URL(`pokemon/${sanitizedName}`, this.baseUrl);
-    const response = await fetch(url.toString());
+    // Construct URL safely with fixed base URL and encode the sanitized name
+    const url = `${this.baseUrl}/pokemon/${encodeURIComponent(sanitizedName)}`;
+    const response = await fetch(url);
 
     if (!response.ok) {
       throw new Error(`Pokemon ${name} not found`);
