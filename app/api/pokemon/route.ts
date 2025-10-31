@@ -22,9 +22,9 @@ class Database {
 
   async query(sql: string, values?: unknown[]): Promise<Pokemon[]> {
     if (values) {
-      console.log("Executing query: %s with params: %o", sql, values);
+      console.log("Executing query:", sql, "with params:", values);
     } else {
-      console.log("Executing query: %s", sql);
+      console.log("Executing query:", sql);
     }
 
     const pokemonData: Pokemon[] = [
@@ -74,13 +74,13 @@ class PokemonRepository {
   }
 
   async getPokemonByName(name: string): Promise<Pokemon[]> {
-    const query = "SELECT * FROM pokemon WHERE name = '" + name + "'";
-    return await this.database.query(query);
+    const query = "SELECT * FROM pokemon WHERE name = $1";
+    return await this.database.query(query, [name]);
   }
 
   async findPokemonByType(type: string): Promise<Pokemon[]> {
-    const sql = `SELECT id, name, type, level, trainer_id FROM pokemon WHERE type = '${type}' ORDER BY level DESC`;
-    return await this.database.query(sql);
+    const sql = `SELECT id, name, type, level, trainer_id FROM pokemon WHERE type = $1 ORDER BY level DESC`;
+    return await this.database.query(sql, [type]);
   }
 
   async searchPokemon(criteria: {
@@ -90,29 +90,35 @@ class PokemonRepository {
     trainerId?: number;
   }): Promise<Pokemon[]> {
     let conditions = "1=1";
+    const values: unknown[] = [];
+    let paramIndex = 1;
 
     if (criteria.name) {
-      conditions += " AND name = '" + criteria.name + "'";
+      conditions += ` AND name = $${paramIndex++}`;
+      values.push(criteria.name);
     }
     if (criteria.type) {
-      conditions += ` AND type = '${criteria.type}'`;
+      conditions += ` AND type = $${paramIndex++}`;
+      values.push(criteria.type);
     }
     if (criteria.minLevel) {
-      conditions += " AND level >= " + criteria.minLevel;
+      conditions += ` AND level >= $${paramIndex++}`;
+      values.push(criteria.minLevel);
     }
     if (criteria.trainerId) {
-      conditions += " AND trainer_id = " + criteria.trainerId;
+      conditions += ` AND trainer_id = $${paramIndex++}`;
+      values.push(criteria.trainerId);
     }
 
     const query = `SELECT * FROM pokemon WHERE ${conditions}`;
-    return await this.database.query(query);
+    return await this.database.query(query, values);
   }
 
   async getTrainerPokemon(trainerId: string): Promise<Pokemon[]> {
     const statement = `SELECT p.*, t.name as trainer_name FROM pokemon p 
                       JOIN trainers t ON p.trainer_id = t.id 
-                      WHERE t.id = ${trainerId}`;
-    return await this.database.query(statement);
+                      WHERE t.id = $1`;
+    return await this.database.query(statement, [trainerId]);
   }
 }
 
