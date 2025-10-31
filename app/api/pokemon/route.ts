@@ -1,66 +1,106 @@
 import { NextRequest } from "next/server";
 import { PokemonService } from "@/services/pokemon.service";
 
-// Mock database simulator for SQL injection demonstration
-class MockDatabase {
-  // Simulate a vulnerable database query - INTENTIONALLY INSECURE FOR TESTING
-  static async executeQuery(query: string): Promise<{
-    pokemon: Array<{
-      id: number;
-      name: string;
-      type: string;
-      level: number;
-      trainer_id: number;
-    }>;
-    sensitive_data?: {
-      admin_password: string;
-      api_keys: string[];
-      user_emails: string[];
-    };
-  } | null> {
-    console.log("Executing SQL Query:", query);
+// Mock SQL database client to simulate real database operations
+class DatabaseClient {
+  private connectionString: string;
 
-    // Simulate database records
-    const mockData = [
+  constructor() {
+    this.connectionString =
+      process.env.DATABASE_URL || "mock://localhost:5432/pokemon_db";
+  }
+
+  // Simulate a database query method that CodeQL can analyze
+  async query(
+    sql: string,
+    params?: unknown[]
+  ): Promise<Record<string, unknown>[]> {
+    console.log("Executing SQL:", sql, "with params:", params);
+
+    // Mock database records to simulate real data
+    const mockRecords = [
       { id: 1, name: "pikachu", type: "electric", level: 25, trainer_id: 1 },
       { id: 2, name: "charizard", type: "fire", level: 50, trainer_id: 1 },
       { id: 3, name: "blastoise", type: "water", level: 45, trainer_id: 2 },
-      { id: 4, name: "admin_secret", type: "admin", level: 999, trainer_id: 0 },
     ];
 
-    // Simulate SQL injection vulnerability by allowing dangerous queries
-    if (
-      query.includes("UNION") ||
-      query.includes("admin_secret") ||
-      query.includes("--")
-    ) {
-      // Return sensitive data that should not be accessible
-      return {
-        pokemon: mockData,
-        sensitive_data: {
-          admin_password: "super_secret_admin_pass",
-          api_keys: ["sk-abc123", "pk-def456"],
-          user_emails: ["admin@pokemon.com", "trainer@pokemon.com"],
-        },
-      };
+    // Simulate query execution results
+    if (sql.toLowerCase().includes("select")) {
+      return mockRecords.filter(
+        (record) =>
+          sql.toLowerCase().includes(record.name) ||
+          !sql.toLowerCase().includes("where")
+      );
     }
 
-    // Normal query behavior
-    const result = mockData.find(
-      (p) => p.name.toLowerCase() === query.toLowerCase()
-    );
-    return result ? { pokemon: [result] } : null;
+    return [];
+  }
+
+  async execute(
+    sql: string
+  ): Promise<{ rows: Record<string, unknown>[]; rowCount: number }> {
+    const rows = await this.query(sql);
+    return { rows, rowCount: rows.length };
+  }
+}
+
+// Repository class following common patterns CodeQL analyzes
+class PokemonRepository {
+  private db: DatabaseClient;
+
+  constructor() {
+    this.db = new DatabaseClient();
+  }
+
+  // VULNERABLE: SQL injection through string concatenation
+  async findByName(name: string): Promise<Record<string, unknown>[]> {
+    // This pattern is commonly flagged by CodeQL as SQL injection
+    const sql = "SELECT * FROM pokemon WHERE name = '" + name + "'";
+    const result = await this.db.query(sql);
+    return result;
+  }
+
+  // VULNERABLE: Template literal SQL injection
+  async searchByType(pokemonType: string): Promise<Record<string, unknown>[]> {
+    // CodeQL detects template literals as potential injection points
+    const query = `SELECT id, name, type, level FROM pokemon WHERE type = '${pokemonType}' ORDER BY level DESC`;
+    return await this.db.query(query);
+  }
+
+  // VULNERABLE: Dynamic query building
+  async findWithFilters(filters: {
+    name?: string;
+    type?: string;
+    minLevel?: number;
+  }): Promise<Record<string, unknown>[]> {
+    let whereClause = "1=1";
+
+    // Building WHERE clause dynamically - vulnerable to injection
+    if (filters.name) {
+      whereClause += " AND name = '" + filters.name + "'";
+    }
+    if (filters.type) {
+      whereClause += ` AND type = '${filters.type}'`;
+    }
+    if (filters.minLevel) {
+      whereClause += " AND level >= " + filters.minLevel;
+    }
+
+    const sql = `SELECT * FROM pokemon WHERE ${whereClause}`;
+    return await this.db.query(sql);
   }
 }
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const name = searchParams.get("name");
+  const type = searchParams.get("type");
+  const minLevel = searchParams.get("minLevel");
   const useDatabase = searchParams.get("db") === "true"; // Feature flag for database mode
 
-  if (!name) {
+  if (!name && !type) {
     return new Response(
-      JSON.stringify({ error: "Name parameter is required" }),
+      JSON.stringify({ error: "Name or type parameter is required" }),
       {
         status: 400,
         headers: {
@@ -71,51 +111,70 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // If database mode is enabled, use vulnerable SQL query
+    // If database mode is enabled, use vulnerable SQL queries
     if (useDatabase) {
-      // VULNERABILITY: Direct string concatenation in SQL query - INSECURE BY DESIGN
-      const sqlQuery = `SELECT * FROM pokemon WHERE name = '${name}'`;
-      const dbResult = await MockDatabase.executeQuery(name);
+      const repository = new PokemonRepository();
+      let dbResult: Record<string, unknown>[] = [];
 
-      if (dbResult) {
-        return new Response(
-          JSON.stringify({
-            source: "database",
-            query: sqlQuery, // Exposing query for demonstration purposes
-            data: dbResult,
-          }),
-          {
-            headers: {
-              "Content-Type": "application/json",
-            },
-          }
-        );
-      } else {
-        return new Response(
-          JSON.stringify({
-            error: "Pokemon not found in database",
-            query: sqlQuery,
-          }),
-          {
-            status: 404,
-            headers: {
-              "Content-Type": "application/json",
-            },
-          }
-        );
+      if (name && type && minLevel) {
+        // VULNERABLE: Multiple parameter injection
+        const filters = {
+          name,
+          type,
+          minLevel: parseInt(minLevel) || 0,
+        };
+        dbResult = await repository.findWithFilters(filters);
+      } else if (type) {
+        // VULNERABLE: Template literal injection
+        dbResult = await repository.searchByType(type);
+      } else if (name) {
+        // VULNERABLE: String concatenation injection
+        dbResult = await repository.findByName(name);
       }
+
+      return new Response(
+        JSON.stringify({
+          source: "database",
+          vulnerabilityType:
+            name && type && minLevel
+              ? "dynamic_query_building"
+              : type
+              ? "template_literal"
+              : "string_concatenation",
+          data: dbResult,
+          warning:
+            "This endpoint is intentionally vulnerable for security testing",
+        }),
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
     }
 
-    // Fall back to original API service
-    const pokemonService = new PokemonService();
-    const pokemonData = await pokemonService.getPokemonByName(name);
+    // Fall back to original API service (secure)
+    if (name) {
+      const pokemonService = new PokemonService();
+      const pokemonData = await pokemonService.getPokemonByName(name);
+
+      return new Response(
+        JSON.stringify({
+          source: "external_api",
+          data: pokemonData,
+        }),
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+    }
 
     return new Response(
-      JSON.stringify({
-        source: "api",
-        data: pokemonData,
-      }),
+      JSON.stringify({ error: "Invalid parameters for API mode" }),
       {
+        status: 400,
         headers: {
           "Content-Type": "application/json",
         },
@@ -126,6 +185,7 @@ export async function GET(request: NextRequest) {
     return new Response(
       JSON.stringify({
         error: "Pokemon not found",
+        details: error instanceof Error ? error.message : "Unknown error",
       }),
       {
         status: 404,
