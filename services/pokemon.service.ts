@@ -32,6 +32,15 @@ export class PokemonService {
     return data.results;
   }
 
+  /**
+   * Retrieves the evolution chain for a given Pokemon.
+   * Note: For Pokemon with multiple evolution branches (e.g., Eevee),
+   * only the first evolution path is returned.
+   * 
+   * @param name - The name of the Pokemon
+   * @returns Array of evolution chain members in order from base to final form
+   * @throws Error if Pokemon is not found or evolution chain cannot be fetched
+   */
   async getEvolutionChain(name: string): Promise<EvolutionChainMember[]> {
     // First, get the Pokemon species to access evolution chain URL
     const pokemon = await this.getPokemonByName(name);
@@ -63,7 +72,10 @@ export class PokemonService {
     while (currentStage) {
       const speciesName = currentStage.species.name;
       const speciesUrl = currentStage.species.url;
-      const speciesId = parseInt(speciesUrl.split("/").slice(-2, -1)[0]);
+      
+      // Extract species ID from URL (e.g., "https://pokeapi.co/api/v2/pokemon-species/4/" -> 4)
+      const urlParts = speciesUrl.split("/").filter((part: string) => part !== "");
+      const speciesId = parseInt(urlParts[urlParts.length - 1], 10);
 
       // Get evolution level if available
       let evolvesAtLevel: number | null = null;

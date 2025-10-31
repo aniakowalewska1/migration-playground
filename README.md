@@ -221,6 +221,7 @@ The application exposes several REST API endpoints:
       - `name`: Pokemon name
       - `stage`: Evolution stage (1, 2, 3, etc.)
       - `evolves_at_level`: Level required to evolve (null if final evolution or doesn't evolve by level)
+  - Note: For Pokemon with multiple evolution branches (e.g., Eevee), only the first evolution path is returned
   - Error responses:
     - 400 if name parameter is missing
     - 404 if Pokemon not found
