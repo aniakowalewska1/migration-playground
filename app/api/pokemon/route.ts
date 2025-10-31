@@ -11,6 +11,62 @@ interface Pokemon {
   updated_at?: string;
 }
 
+class InputValidator {
+  static validateName(name: string): { valid: boolean; error?: string } {
+    if (!name || typeof name !== "string") {
+      return { valid: false, error: "Name must be a non-empty string" };
+    }
+    if (name.length > 50) {
+      return { valid: false, error: "Name must be 50 characters or less" };
+    }
+    if (!/^[a-zA-Z0-9\s\-_]+$/.test(name)) {
+      return {
+        valid: false,
+        error: "Name can only contain letters, numbers, spaces, hyphens, and underscores",
+      };
+    }
+    return { valid: true };
+  }
+
+  static validateType(type: string): { valid: boolean; error?: string } {
+    if (!type || typeof type !== "string") {
+      return { valid: false, error: "Type must be a non-empty string" };
+    }
+    if (type.length > 30) {
+      return { valid: false, error: "Type must be 30 characters or less" };
+    }
+    if (!/^[a-zA-Z\s\-]+$/.test(type)) {
+      return {
+        valid: false,
+        error: "Type can only contain letters, spaces, and hyphens",
+      };
+    }
+    return { valid: true };
+  }
+
+  static validateLevel(level: string): { valid: boolean; error?: string; value?: number } {
+    const parsed = parseInt(level);
+    if (isNaN(parsed)) {
+      return { valid: false, error: "Level must be a valid number" };
+    }
+    if (parsed < 1 || parsed > 100) {
+      return { valid: false, error: "Level must be between 1 and 100" };
+    }
+    return { valid: true, value: parsed };
+  }
+
+  static validateTrainerId(trainerId: string): { valid: boolean; error?: string } {
+    if (!/^\d+$/.test(trainerId)) {
+      return { valid: false, error: "Trainer ID must be a positive integer" };
+    }
+    const parsed = parseInt(trainerId);
+    if (parsed < 1 || parsed > 999999) {
+      return { valid: false, error: "Trainer ID must be between 1 and 999999" };
+    }
+    return { valid: true };
+  }
+}
+
 class Database {
   private connection: string;
 
@@ -138,6 +194,59 @@ export async function GET(request: NextRequest) {
         headers: { "Content-Type": "application/json" },
       }
     );
+  }
+
+  // Validate inputs
+  if (name) {
+    const nameValidation = InputValidator.validateName(name);
+    if (!nameValidation.valid) {
+      return new Response(
+        JSON.stringify({ error: nameValidation.error }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+  }
+
+  if (type) {
+    const typeValidation = InputValidator.validateType(type);
+    if (!typeValidation.valid) {
+      return new Response(
+        JSON.stringify({ error: typeValidation.error }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+  }
+
+  if (minLevel) {
+    const levelValidation = InputValidator.validateLevel(minLevel);
+    if (!levelValidation.valid) {
+      return new Response(
+        JSON.stringify({ error: levelValidation.error }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+  }
+
+  if (trainerId) {
+    const trainerIdValidation = InputValidator.validateTrainerId(trainerId);
+    if (!trainerIdValidation.valid) {
+      return new Response(
+        JSON.stringify({ error: trainerIdValidation.error }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
   }
 
   try {
