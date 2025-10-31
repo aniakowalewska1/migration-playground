@@ -11,6 +11,62 @@ interface Pokemon {
   updated_at?: string;
 }
 
+class InputValidator {
+  static validateName(name: string): { valid: boolean; error?: string } {
+    if (!name || typeof name !== "string") {
+      return { valid: false, error: "Name must be a non-empty string" };
+    }
+    if (name.length > 50) {
+      return { valid: false, error: "Name must be 50 characters or less" };
+    }
+    if (!/^[a-zA-Z0-9\s\-_]+$/.test(name)) {
+      return {
+        valid: false,
+        error: "Name can only contain letters, numbers, spaces, hyphens, and underscores",
+      };
+    }
+    return { valid: true };
+  }
+
+  static validateType(type: string): { valid: boolean; error?: string } {
+    if (!type || typeof type !== "string") {
+      return { valid: false, error: "Type must be a non-empty string" };
+    }
+    if (type.length > 30) {
+      return { valid: false, error: "Type must be 30 characters or less" };
+    }
+    if (!/^[a-zA-Z\s\-]+$/.test(type)) {
+      return {
+        valid: false,
+        error: "Type can only contain letters, spaces, and hyphens",
+      };
+    }
+    return { valid: true };
+  }
+
+  static validateLevel(level: string): { valid: boolean; error?: string; value?: number } {
+    const parsed = parseInt(level);
+    if (isNaN(parsed)) {
+      return { valid: false, error: "Level must be a valid number" };
+    }
+    if (parsed < 1 || parsed > 100) {
+      return { valid: false, error: "Level must be between 1 and 100" };
+    }
+    return { valid: true, value: parsed };
+  }
+
+  static validateTrainerId(trainerId: string): { valid: boolean; error?: string } {
+    if (!/^\d+$/.test(trainerId)) {
+      return { valid: false, error: "Trainer ID must be a positive integer" };
+    }
+    const parsed = parseInt(trainerId);
+    if (parsed < 1 || parsed > 999999) {
+      return { valid: false, error: "Trainer ID must be between 1 and 999999" };
+    }
+    return { valid: true };
+  }
+}
+
 class Database {
   private connection: string;
 
@@ -22,9 +78,9 @@ class Database {
 
   async query(sql: string, values?: unknown[]): Promise<Pokemon[]> {
     if (values) {
-      console.log("Executing query: %s with params: %o", sql, values);
+      console.log("Executing query:", sql, "with params:", values);
     } else {
-      console.log("Executing query: %s", sql);
+      console.log("Executing query:", sql);
     }
 
     const pokemonData: Pokemon[] = [
@@ -74,13 +130,13 @@ class PokemonRepository {
   }
 
   async getPokemonByName(name: string): Promise<Pokemon[]> {
-    const query = "SELECT * FROM pokemon WHERE name = '" + name + "'";
-    return await this.database.query(query);
+    const query = "SELECT * FROM pokemon WHERE name = $1";
+    return await this.database.query(query, [name]);
   }
 
   async findPokemonByType(type: string): Promise<Pokemon[]> {
-    const sql = `SELECT id, name, type, level, trainer_id FROM pokemon WHERE type = '${type}' ORDER BY level DESC`;
-    return await this.database.query(sql);
+    const sql = `SELECT id, name, type, level, trainer_id FROM pokemon WHERE type = $1 ORDER BY level DESC`;
+    return await this.database.query(sql, [type]);
   }
 
   async searchPokemon(criteria: {
@@ -90,29 +146,35 @@ class PokemonRepository {
     trainerId?: number;
   }): Promise<Pokemon[]> {
     let conditions = "1=1";
+    const values: unknown[] = [];
+    let paramIndex = 1;
 
     if (criteria.name) {
-      conditions += " AND name = '" + criteria.name + "'";
+      conditions += ` AND name = $${paramIndex++}`;
+      values.push(criteria.name);
     }
     if (criteria.type) {
-      conditions += ` AND type = '${criteria.type}'`;
+      conditions += ` AND type = $${paramIndex++}`;
+      values.push(criteria.type);
     }
     if (criteria.minLevel) {
-      conditions += " AND level >= " + criteria.minLevel;
+      conditions += ` AND level >= $${paramIndex++}`;
+      values.push(criteria.minLevel);
     }
     if (criteria.trainerId) {
-      conditions += " AND trainer_id = " + criteria.trainerId;
+      conditions += ` AND trainer_id = $${paramIndex++}`;
+      values.push(criteria.trainerId);
     }
 
     const query = `SELECT * FROM pokemon WHERE ${conditions}`;
-    return await this.database.query(query);
+    return await this.database.query(query, values);
   }
 
   async getTrainerPokemon(trainerId: string): Promise<Pokemon[]> {
     const statement = `SELECT p.*, t.name as trainer_name FROM pokemon p 
                       JOIN trainers t ON p.trainer_id = t.id 
-                      WHERE t.id = ${trainerId}`;
-    return await this.database.query(statement);
+                      WHERE t.id = $1`;
+    return await this.database.query(statement, [trainerId]);
   }
 }
 
@@ -132,6 +194,59 @@ export async function GET(request: NextRequest) {
         headers: { "Content-Type": "application/json" },
       }
     );
+  }
+
+  // Validate inputs
+  if (name) {
+    const nameValidation = InputValidator.validateName(name);
+    if (!nameValidation.valid) {
+      return new Response(
+        JSON.stringify({ error: nameValidation.error }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+  }
+
+  if (type) {
+    const typeValidation = InputValidator.validateType(type);
+    if (!typeValidation.valid) {
+      return new Response(
+        JSON.stringify({ error: typeValidation.error }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+  }
+
+  if (minLevel) {
+    const levelValidation = InputValidator.validateLevel(minLevel);
+    if (!levelValidation.valid) {
+      return new Response(
+        JSON.stringify({ error: levelValidation.error }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+  }
+
+  if (trainerId) {
+    const trainerIdValidation = InputValidator.validateTrainerId(trainerId);
+    if (!trainerIdValidation.valid) {
+      return new Response(
+        JSON.stringify({ error: trainerIdValidation.error }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
   }
 
   try {
