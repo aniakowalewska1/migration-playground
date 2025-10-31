@@ -10,21 +10,18 @@ class DatabaseClient {
       process.env.DATABASE_URL || "mock://localhost:5432/pokemon_db";
   }
 
-  // Simulate a database query method that CodeQL can analyze
   async query(
     sql: string,
     params?: unknown[]
   ): Promise<Record<string, unknown>[]> {
     console.log("Executing SQL:", sql, "with params:", params);
 
-    // Mock database records to simulate real data
     const mockRecords = [
       { id: 1, name: "pikachu", type: "electric", level: 25, trainer_id: 1 },
       { id: 2, name: "charizard", type: "fire", level: 50, trainer_id: 1 },
       { id: 3, name: "blastoise", type: "water", level: 45, trainer_id: 2 },
     ];
 
-    // Simulate query execution results
     if (sql.toLowerCase().includes("select")) {
       return mockRecords.filter(
         (record) =>
@@ -52,22 +49,17 @@ class PokemonRepository {
     this.db = new DatabaseClient();
   }
 
-  // VULNERABLE: SQL injection through string concatenation
   async findByName(name: string): Promise<Record<string, unknown>[]> {
-    // This pattern is commonly flagged by CodeQL as SQL injection
     const sql = "SELECT * FROM pokemon WHERE name = '" + name + "'";
     const result = await this.db.query(sql);
     return result;
   }
 
-  // VULNERABLE: Template literal SQL injection
   async searchByType(pokemonType: string): Promise<Record<string, unknown>[]> {
-    // CodeQL detects template literals as potential injection points
     const query = `SELECT id, name, type, level FROM pokemon WHERE type = '${pokemonType}' ORDER BY level DESC`;
     return await this.db.query(query);
   }
 
-  // VULNERABLE: Dynamic query building
   async findWithFilters(filters: {
     name?: string;
     type?: string;
@@ -75,7 +67,6 @@ class PokemonRepository {
   }): Promise<Record<string, unknown>[]> {
     let whereClause = "1=1";
 
-    // Building WHERE clause dynamically - vulnerable to injection
     if (filters.name) {
       whereClause += " AND name = '" + filters.name + "'";
     }
@@ -96,7 +87,7 @@ export async function GET(request: NextRequest) {
   const name = searchParams.get("name");
   const type = searchParams.get("type");
   const minLevel = searchParams.get("minLevel");
-  const useDatabase = searchParams.get("db") === "true"; // Feature flag for database mode
+  const useDatabase = searchParams.get("db") === "true";
 
   if (!name && !type) {
     return new Response(
@@ -111,13 +102,11 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // If database mode is enabled, use vulnerable SQL queries
     if (useDatabase) {
       const repository = new PokemonRepository();
       let dbResult: Record<string, unknown>[] = [];
 
       if (name && type && minLevel) {
-        // VULNERABLE: Multiple parameter injection
         const filters = {
           name,
           type,
@@ -125,10 +114,8 @@ export async function GET(request: NextRequest) {
         };
         dbResult = await repository.findWithFilters(filters);
       } else if (type) {
-        // VULNERABLE: Template literal injection
         dbResult = await repository.searchByType(type);
       } else if (name) {
-        // VULNERABLE: String concatenation injection
         dbResult = await repository.findByName(name);
       }
 
@@ -153,7 +140,6 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Fall back to original API service (secure)
     if (name) {
       const pokemonService = new PokemonService();
       const pokemonData = await pokemonService.getPokemonByName(name);
