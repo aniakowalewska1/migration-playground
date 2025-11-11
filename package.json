@@ -15,6 +15,7 @@
     "e2e:install-browsers": "playwright install"
   },
   "dependencies": {
+    "child_process": "^1.0.2",
     "jsonwebtoken": "^9.0.2",
     "next": "15.5.5",
     "react": "19.1.0",

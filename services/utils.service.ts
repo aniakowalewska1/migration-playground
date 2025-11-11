@@ -1,8 +1,14 @@
-import { exec } from "child_process";
 import { promisify } from "util";
 import * as crypto from "crypto";
 
-const execAsync = promisify(exec);
+// Dynamically import child_process only on server side
+const getExecAsync = async () => {
+  if (typeof window === "undefined") {
+    const { exec } = await import("child_process");
+    return promisify(exec);
+  }
+  throw new Error("child_process is not available in browser environment");
+};
 
 /**
  * Utility service with potential false positive triggers
@@ -15,6 +21,9 @@ export class UtilsService {
   async sanitizeAndExecuteCommand(userInput: string): Promise<string> {
     // Input validation - only allow alphanumeric characters and hyphens
     const sanitizedInput = userInput.replace(/[^a-zA-Z0-9-]/g, "");
+
+    // Get execAsync only on server side
+    const execAsync = await getExecAsync();
 
     // This could trigger CodeQL's "Uncontrolled command line" rule
     // but it's actually safe because we sanitized the input
