@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 
-// VULNERABLE CODE - for testing CodeQL detection
+// Vulnerability: returning unescaped user input
+
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const userInput = searchParams.get("content") || "";
 
-  // This creates an XSS vulnerability by returning unescaped user input
   const htmlResponse = `
     <html>
       <body>

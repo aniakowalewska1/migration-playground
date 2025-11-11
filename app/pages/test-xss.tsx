@@ -3,6 +3,7 @@ import XssSeed from "../../security/xss-sink";
 interface TestPageProps {
   userInput: string;
 }
+// Vulnerability
 
 export default function TestPage({ userInput }: TestPageProps) {
   return <XssSeed userContent={userInput} />;

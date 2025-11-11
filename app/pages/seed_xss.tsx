@@ -6,6 +6,7 @@ export default function Seed({ msg }: { msg: string }) {
     </div>
   );
 }
+// Vulnerability
 
 import type { GetServerSidePropsContext } from "next";
 
