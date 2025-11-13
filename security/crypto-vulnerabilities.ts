@@ -7,8 +7,6 @@
  * WARNING: These examples show INSECURE patterns - DO NOT use in production!
  */
 
-/* eslint-disable @typescript-eslint/no-unused-vars */
-
 import * as crypto from "crypto";
 
 // ================================
@@ -384,6 +382,46 @@ export class CryptographicVulnerabilities {
   static encryptSensitiveData(data: string): string {
     // ❌ Multiple vulnerabilities
     return WeakEncryption.encryptWithDES(data, HardcodedKeys.JWT_SECRET);
+  }
+
+  /**
+   * Example using IV vulnerabilities
+   */
+  static encryptWithBadIV(data: string, key: string): string {
+    // ❌ Uses static IV
+    return ImproperIVUsage.encryptWithStaticIV(data, key);
+  }
+
+  /**
+   * Example using unauthenticated encryption
+   */
+  static encryptWithoutIntegrity(data: string, key: string): string {
+    // ❌ No authentication
+    return MissingAuthentication.encryptWithoutAuth(data, key);
+  }
+
+  /**
+   * Example using weak key derivation
+   */
+  static deriveWeakKey(password: string): string {
+    // ❌ Weak key derivation
+    return WeakKeyDerivation.deriveKeyWeakly(password, "salt");
+  }
+
+  /**
+   * Example using timing attack vulnerable comparison
+   */
+  static validateToken(userToken: string, validToken: string): boolean {
+    // ❌ Timing attack vulnerable
+    return TimingAttacks.insecureTokenValidation(userToken, validToken);
+  }
+
+  /**
+   * Example using insecure seeding
+   */
+  static generatePredictableRandom(): string {
+    // ❌ Time-based seeding
+    return InsecureSeeding.generateTimeBasedRandom();
   }
 
   /**
