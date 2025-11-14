@@ -15,12 +15,15 @@
     "e2e:install-browsers": "playwright install"
   },
   "dependencies": {
+    "child_process": "^1.0.2",
+    "jsonwebtoken": "^9.0.2",
     "next": "15.5.5",
     "react": "19.1.0",
     "react-dom": "19.1.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@playwright/test": "^1.38.0",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.0",
@@ -35,7 +38,6 @@
     "jest-environment-jsdom": "^30.2.0",
     "tailwindcss": "^4",
     "ts-node": "^10.9.2",
-    "typescript": "^5",
-    "@playwright/test": "^1.38.0"
+    "typescript": "^5"
   }
 }

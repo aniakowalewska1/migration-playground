@@ -4,6 +4,7 @@ import Header from "../components/Header";
 import ItemList from "../components/ItemList";
 import { PokemonSearch } from "../components/PokemonSearch";
 import { PokemonCard } from "../components/PokemonCard";
+import { DemoComponent } from "../components/DemoComponent";
 import { useState } from "react";
 
 export default function Home() {
@@ -23,6 +24,10 @@ export default function Home() {
             className="mb-6"
           />
           {selectedPokemon && <PokemonCard pokemonName={selectedPokemon} />}
+        </div>
+
+        <div className="w-full max-w-lg mx-auto">
+          <DemoComponent className="mb-6" />
         </div>
 
         <div className="flex gap-4 items-center flex-col sm:flex-row">

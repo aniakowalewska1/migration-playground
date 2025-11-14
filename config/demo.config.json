@@ -1,0 +1,35 @@
+{
+  "demoConfig": {
+    "apiKeys": {
+      "demoKey": "demo-12345-not-real-key",
+      "testKey": "test-abcdef-fake-key"
+    },
+    "endpoints": {
+      "development": "https://demo.api.local/v1",
+      "staging": "https://staging.demo.api.com/v1",
+      "production": "https://api.demo.com/v1"
+    },
+    "security": {
+      "allowedOrigins": ["http://localhost:3000", "https://demo.vercel.app"],
+      "rateLimits": {
+        "perMinute": 100,
+        "perHour": 1000
+      },
+      "demoPasswords": {
+        "adminUser": "admin123",
+        "testUser": "password",
+        "demoUser": "demo"
+      }
+    },
+    "database": {
+      "demoConnectionString": "mongodb://demo:demo123@localhost:27017/demo",
+      "testConnectionString": "postgresql://test:test123@localhost:5432/testdb"
+    }
+  },
+  "notes": [
+    "This configuration contains demo/test credentials only",
+    "Real credentials should come from environment variables",
+    "These hardcoded values are for development/testing purposes",
+    "In production, use proper secret management"
+  ]
+}
