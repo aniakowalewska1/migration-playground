@@ -1,4 +1,4 @@
-import { Pokemon, EvolutionDetail } from "../types/pokemon";
+import { Pokemon, EvolutionDetail, EvolutionChainData } from "../types/pokemon";
 
 export class PokemonService {
   private baseUrl: string;
@@ -58,7 +58,7 @@ export class PokemonService {
     return this.parseEvolutionChain(evolutionData.chain);
   }
 
-  private parseEvolutionChain(chain: any, stage: number = 1): EvolutionDetail[] {
+  private parseEvolutionChain(chain: EvolutionChainData, stage: number = 1): EvolutionDetail[] {
     const evolutions: EvolutionDetail[] = [];
 
     // Extract current Pokemon's ID from its URL

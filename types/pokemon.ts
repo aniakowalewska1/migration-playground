@@ -47,3 +47,14 @@ export interface EvolutionChainResponse {
   pokemon: string;
   evolution_chain: EvolutionDetail[];
 }
+
+export interface EvolutionChainData {
+  species: {
+    name: string;
+    url: string;
+  };
+  evolution_details: Array<{
+    min_level?: number;
+  }>;
+  evolves_to: EvolutionChainData[];
+}
