@@ -1,4 +1,4 @@
-import { Pokemon } from "../types/pokemon";
+import { Pokemon, EvolutionDetail, EvolutionChainData } from "../types/pokemon";
 
 export class PokemonService {
   private baseUrl: string;
@@ -30,5 +30,78 @@ export class PokemonService {
 
     const data = await response.json();
     return data.results;
+  }
+
+  async getEvolutionChain(name: string): Promise<EvolutionDetail[]> {
+    // First, get the Pokemon species to obtain the evolution chain URL
+    const speciesResponse = await fetch(
+      `${this.baseUrl}/pokemon-species/${name.toLowerCase()}`
+    );
+
+    if (!speciesResponse.ok) {
+      throw new Error(`Pokemon ${name} not found`);
+    }
+
+    const speciesData = await speciesResponse.json();
+    const evolutionChainUrl = speciesData.evolution_chain.url;
+
+    // Fetch the evolution chain data
+    const evolutionResponse = await fetch(evolutionChainUrl);
+
+    if (!evolutionResponse.ok) {
+      throw new Error("Failed to fetch evolution chain");
+    }
+
+    const evolutionData = await evolutionResponse.json();
+
+    // Parse the evolution chain
+    return this.parseEvolutionChain(evolutionData.chain);
+  }
+
+  private parseEvolutionChain(
+    chain: EvolutionChainData,
+    stage: number = 1,
+    maxDepth: number = 10
+  ): EvolutionDetail[] {
+    const evolutions: EvolutionDetail[] = [];
+
+    // Prevent excessive recursion
+    if (stage > maxDepth) {
+      return evolutions;
+    }
+
+    // Extract current Pokemon's ID from its URL
+    const speciesUrlParts = chain.species.url.split("/");
+    const speciesId = parseInt(speciesUrlParts[speciesUrlParts.length - 2]);
+
+    // Validate parsed ID
+    if (isNaN(speciesId)) {
+      throw new Error("Failed to parse Pokemon species ID");
+    }
+
+    // Get evolution level if available
+    let evolvesAtLevel: number | null = null;
+    if (chain.evolution_details && chain.evolution_details.length > 0) {
+      const detail = chain.evolution_details[0];
+      if (detail.min_level) {
+        evolvesAtLevel = detail.min_level;
+      }
+    }
+
+    evolutions.push({
+      id: speciesId,
+      name: chain.species.name,
+      stage: stage,
+      evolves_at_level: evolvesAtLevel,
+    });
+
+    // Recursively process evolutions
+    if (chain.evolves_to && chain.evolves_to.length > 0) {
+      for (const evolution of chain.evolves_to) {
+        evolutions.push(...this.parseEvolutionChain(evolution, stage + 1, maxDepth));
+      }
+    }
+
+    return evolutions;
   }
 }
