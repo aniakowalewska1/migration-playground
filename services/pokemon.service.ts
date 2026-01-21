@@ -58,12 +58,26 @@ export class PokemonService {
     return this.parseEvolutionChain(evolutionData.chain);
   }
 
-  private parseEvolutionChain(chain: EvolutionChainData, stage: number = 1): EvolutionDetail[] {
+  private parseEvolutionChain(
+    chain: EvolutionChainData,
+    stage: number = 1,
+    maxDepth: number = 10
+  ): EvolutionDetail[] {
     const evolutions: EvolutionDetail[] = [];
+
+    // Prevent excessive recursion
+    if (stage > maxDepth) {
+      return evolutions;
+    }
 
     // Extract current Pokemon's ID from its URL
     const speciesUrlParts = chain.species.url.split("/");
     const speciesId = parseInt(speciesUrlParts[speciesUrlParts.length - 2]);
+
+    // Validate parsed ID
+    if (isNaN(speciesId)) {
+      throw new Error("Failed to parse Pokemon species ID");
+    }
 
     // Get evolution level if available
     let evolvesAtLevel: number | null = null;
@@ -84,7 +98,7 @@ export class PokemonService {
     // Recursively process evolutions
     if (chain.evolves_to && chain.evolves_to.length > 0) {
       for (const evolution of chain.evolves_to) {
-        evolutions.push(...this.parseEvolutionChain(evolution, stage + 1));
+        evolutions.push(...this.parseEvolutionChain(evolution, stage + 1, maxDepth));
       }
     }
 
